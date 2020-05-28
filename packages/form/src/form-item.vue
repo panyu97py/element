@@ -51,12 +51,14 @@
 
     mixins: [emitter],
 
+    // 父组件中返回要传给下级的数据
     provide() {
       return {
         elFormItem: this
       };
     },
 
+    // 接收父组件传递的值
     inject: ['elForm'],
 
     props: {
@@ -67,6 +69,9 @@
         type: Boolean,
         default: undefined
       },
+      /**
+       * 校验规则
+       */
       rules: [Object, Array],
       error: String,
       validateStatus: String,
@@ -127,10 +132,15 @@
         }
         return ret;
       },
+      /**
+       * 向上查找到的第一个组件名为 ElForm 的组件实例
+       */
       form() {
         let parent = this.$parent;
         let parentName = parent.$options.componentName;
+        // 向上递归查找组件名为 ElForm 的组件
         while (parentName !== 'ElForm') {
+          // 如果他的父组件中包含组件名为 ElFormItem 的组件，则这是一个嵌套表单
           if (parentName === 'ElFormItem') {
             this.isNested = true;
           }
@@ -150,6 +160,9 @@
 
         return getPropByPath(model, path, true).v;
       },
+      /**
+       * 是否非空
+       */
       isRequired() {
         let rules = this.getRules();
         let isRequired = false;
@@ -158,7 +171,7 @@
           rules.every(rule => {
             if (rule.required) {
               isRequired = true;
-              return false;
+              return false; // 用于终止循环
             }
             return true;
           });
@@ -179,13 +192,25 @@
       return {
         validateState: '',
         validateMessage: '',
+        /**
+         * 验证禁用状态
+         */
         validateDisabled: false,
         validator: {},
+        /**
+         * 是否为嵌套
+         */
         isNested: false,
         computedLabelWidth: ''
       };
     },
     methods: {
+      /**
+       * 校验参数
+       * @param trigger 触发事件（change/blur）
+       * @param callback 回调函数（默认为一个空函数）
+       * @returns {boolean}
+       */
       validate(trigger, callback = noop) {
         this.validateDisabled = false;
         const rules = this.getFilteredRule(trigger);
@@ -204,6 +229,7 @@
         }
         descriptor[this.prop] = rules;
 
+        // 表单异步验证js库：async-validator
         const validator = new AsyncValidator(descriptor);
         const model = {};
 
@@ -249,6 +275,9 @@
 
         this.broadcast('ElTimeSelect', 'fieldReset', this.initialValue);
       },
+      /**
+       * 获取全部校验规则
+       */
       getRules() {
         let formRules = this.form.rules;
         const selfRules = this.rules;
@@ -259,17 +288,27 @@
 
         return [].concat(selfRules || formRules || []).concat(requiredRule);
       },
+      /**
+       * 获取并过滤指定事件类型的校验规则
+       * @param trigger 事件类型
+       * @returns {*}
+       */
       getFilteredRule(trigger) {
+        // 获取全部校验规则
         const rules = this.getRules();
 
         return rules.filter(rule => {
+          // 如果没有规则列表中没有定义规则的事件类型则返回
           if (!rule.trigger || trigger === '') return true;
+          // 如果定义的事件类型为数组则……
           if (Array.isArray(rule.trigger)) {
+            // 判断指定的事件类型是否在数组中
             return rule.trigger.indexOf(trigger) > -1;
           } else {
+            // 判断规则列表中定义的事件类型是否为指定的事件类型
             return rule.trigger === trigger;
           }
-        }).map(rule => objectAssign({}, rule));
+        }).map(rule => objectAssign({}, rule));//循环过滤所得的校验规则，与一个空对象合并（//TODO 这波操作看不懂啊）
       },
       onFieldBlur() {
         this.validate('blur');
@@ -299,6 +338,8 @@
     },
     mounted() {
       if (this.prop) {
+        // 向上查找组件名为 ElForm 的组件提交事件名为 el.form.addField 的事件，参数为this
+        // 结合 ElForm 组件中的逻辑代码，这里是将当前组件实例注册到父组件中去
         this.dispatch('ElForm', 'el.form.addField', [this]);
 
         let initialValue = this.fieldValue;
@@ -313,6 +354,8 @@
       }
     },
     beforeDestroy() {
+      // 向上查找组件名为 ElForm 的组件提交事件名为 el.form.removeField 的事件，参数为this
+      // 结合 ElForm 组件中的逻辑代码，这里是将当前组件实例从父组件中的注册列表中移除
       this.dispatch('ElForm', 'el.form.removeField', [this]);
     }
   };

@@ -3,6 +3,9 @@ import { isString, isObject } from 'element-ui/src/utils/types';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
+/**
+ * 空函数
+ */
 export function noop() {};
 
 export function hasOwn(obj, key) {
@@ -44,18 +47,26 @@ export const getValueByPath = function(object, prop) {
   return result;
 };
 
+/**
+ * 根据路径表达式从数据源中获取数据
+ * @param obj 数据源
+ * @param path 路径表达式
+ * @param strict 是否为严格模式
+ * @returns {{v: (*|null), k: *, o: *}}
+ */
 export function getPropByPath(obj, path, strict) {
   let tempObj = obj;
-  path = path.replace(/\[(\w+)\]/g, '.$1');
-  path = path.replace(/^\./, '');
+  path = path.replace(/\[(\w+)\]/g, '.$1');//匹配数组表单 如：phones[0].model 将被 replace 成为 phones.0.model
+  path = path.replace(/^\./, ''); //替换字符串中第一个为 . 的符号
 
-  let keyArr = path.split('.');
+  let keyArr = path.split('.');// 将表达式生成一个数组
   let i = 0;
+  // 循环 keyArr 递归获取数据
   for (let len = keyArr.length; i < len - 1; ++i) {
-    if (!tempObj && !strict) break;
-    let key = keyArr[i];
+    if (!tempObj && !strict) break; //tempObj不存在，且不为严格模式，则停止循环。（ 防止不为严格模式时 tempObj 的值不存在造成的 key in tempObj 错误）//TODO 疑问：严格模式就不能进这个判断不就抛异常了？
+    let key = keyArr[i];// 获取 key
     if (key in tempObj) {
-      tempObj = tempObj[key];
+      tempObj = tempObj[key]; // 赋值
     } else {
       if (strict) {
         throw new Error('please transfer a valid prop path to form item!');
