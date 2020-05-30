@@ -52,6 +52,7 @@
       }
     },
     watch: {
+      // 规则变更则重置事件
       rules() {
         // remove then add event listeners on form-item after form rules change
         this.fields.forEach(field => {
@@ -102,6 +103,9 @@
       });
     },
     methods: {
+      /**
+       * 遍历重置所有字段
+       */
       resetFields() {
         if (!this.model) {
           console.warn('[Element Warn][Form]model is required for resetFields to work.');
@@ -111,6 +115,9 @@
           field.resetField();
         });
       },
+      /**
+       * 清除验证,如果不传prop就清除所有
+       */
       clearValidate(props = []) {
         const fields = props.length
           ? (typeof props === 'string'
@@ -123,6 +130,8 @@
       },
       /**
        * 表单校验方法
+       * 这里就可以体现出关联组件,解耦代码的思想,每个组件仅仅做自己事.
+       * form只做了统一的管理与调度,真正干活的还是小弟
        * @param callback 回调函数
        * @returns {Promise<any>}
        */
@@ -180,6 +189,11 @@
           return promise;
         }
       },
+      /**
+       * 指定字段进行验证
+       * @param props
+       * @param cb
+       */
       validateField(props, cb) {
         props = [].concat(props);
         const fields = this.fields.filter(field => props.indexOf(field.prop) !== -1);

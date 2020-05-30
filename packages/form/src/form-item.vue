@@ -1,5 +1,5 @@
 <template>
-  <div class="el-form-item" :class="[{
+    <div class="el-form-item" :class="[{
       'el-form-item--feedback': elForm && elForm.statusIcon,
       'is-error': validateState === 'error',
       'is-validating': validateState === 'validating',
@@ -9,41 +9,42 @@
     },
     sizeClass ? 'el-form-item--' + sizeClass : ''
   ]">
-    <label-wrap
-      :is-auto-width="labelStyle && labelStyle.width === 'auto'"
-      :update-all="form.labelWidth === 'auto'">
-      <label :for="labelFor" class="el-form-item__label" :style="labelStyle" v-if="label || $slots.label">
-        <slot name="label">{{label + form.labelSuffix}}</slot>
-      </label>
-    </label-wrap>
-    <div class="el-form-item__content" :style="contentStyle">
-      <slot></slot>
-      <transition name="el-zoom-in-top">
-        <slot
-          v-if="validateState === 'error' && showMessage && form.showMessage"
-          name="error"
-          :error="validateMessage">
-          <div
-            class="el-form-item__error"
-            :class="{
+        <label-wrap
+                :is-auto-width="labelStyle && labelStyle.width === 'auto'"
+                :update-all="form.labelWidth === 'auto'">
+            <label :for="labelFor" class="el-form-item__label" :style="labelStyle" v-if="label || $slots.label">
+                <slot name="label">{{label + form.labelSuffix}}</slot>
+            </label>
+        </label-wrap>
+        <div class="el-form-item__content" :style="contentStyle">
+            <slot></slot>
+            <transition name="el-zoom-in-top">
+                <slot
+                        v-if="validateState === 'error' && showMessage && form.showMessage"
+                        name="error"
+                        :error="validateMessage">
+                    <div
+                            class="el-form-item__error"
+                            :class="{
               'el-form-item__error--inline': typeof inlineMessage === 'boolean'
                 ? inlineMessage
                 : (elForm && elForm.inlineMessage || false)
             }"
-          >
-            {{validateMessage}}
-          </div>
-        </slot>
-      </transition>
+                    >
+                        {{validateMessage}}
+                    </div>
+                </slot>
+            </transition>
+        </div>
     </div>
-  </div>
 </template>
 <script>
   import AsyncValidator from 'async-validator';
   import emitter from 'element-ui/src/mixins/emitter';
   import objectAssign from 'element-ui/src/utils/merge';
-  import { noop, getPropByPath } from 'element-ui/src/utils/util';
+  import {noop, getPropByPath} from 'element-ui/src/utils/util';
   import LabelWrap from './label-wrap';
+
   export default {
     name: 'ElFormItem',
 
@@ -151,7 +152,9 @@
       },
       fieldValue() {
         const model = this.form.model;
-        if (!model || !this.prop) { return; }
+        if (!model || !this.prop) {
+          return;
+        }
 
         let path = this.prop;
         if (path.indexOf(':') !== -1) {
@@ -212,46 +215,62 @@
        * @returns {boolean}
        */
       validate(trigger, callback = noop) {
+        // 关闭验证禁止
         this.validateDisabled = false;
+        // 获取符合trigger的规则
         const rules = this.getFilteredRule(trigger);
+        // 如果没有定义规则并且没有定义必须填写
         if ((!rules || rules.length === 0) && this.required === undefined) {
+
+          // 立即执行回调
           callback();
           return true;
         }
 
+        // 改变验证状态为正在验证
         this.validateState = 'validating';
 
         const descriptor = {};
+        // 为了匹配AsyncValidator插件所需要的格式,需要做规则数据做一些操作
         if (rules && rules.length > 0) {
           rules.forEach(rule => {
             delete rule.trigger;
           });
         }
+        // 生成AsyncValidator需要的验证规则格式
         descriptor[this.prop] = rules;
 
         // 表单异步验证js库：async-validator
         const validator = new AsyncValidator(descriptor);
         const model = {};
 
+        // 生成AsyncValidator需要验证的数据
         model[this.prop] = this.fieldValue;
-
-        validator.validate(model, { firstFields: true }, (errors, invalidFields) => {
+        // firstField是指当验证规则时发生错误 不再继续向下进行验证
+        validator.validate(model, {firstFields: true}, (errors, invalidFields) => {
+          // 验证状态
           this.validateState = !errors ? 'success' : 'error';
+          // 验证信息
           this.validateMessage = errors ? errors[0].message : '';
-
+          // 执行回调函数
           callback(this.validateMessage, invalidFields);
+          // 提交validate事件
           this.elForm && this.elForm.$emit('validate', this.prop, !errors, this.validateMessage || null);
         });
       },
+      // 清除所有当前验证状态
       clearValidate() {
         this.validateState = '';
         this.validateMessage = '';
         this.validateDisabled = false;
       },
+      //  重置所有字段为初始值
       resetField() {
+        // 清除验证信息与状态
         this.validateState = '';
         this.validateMessage = '';
 
+        // 获取model数据模型中所对应的值
         let model = this.form.model;
         let value = this.fieldValue;
         let path = this.prop;
@@ -262,6 +281,7 @@
         let prop = getPropByPath(model, path, true);
 
         this.validateDisabled = true;
+        // 重置为一开始获取的初始值
         if (Array.isArray(value)) {
           prop.o[prop.k] = [].concat(this.initialValue);
         } else {
@@ -281,7 +301,7 @@
       getRules() {
         let formRules = this.form.rules;
         const selfRules = this.rules;
-        const requiredRule = this.required !== undefined ? { required: !!this.required } : [];
+        const requiredRule = this.required !== undefined ? {required: !!this.required} : [];
 
         const prop = getPropByPath(formRules, this.prop || '');
         formRules = formRules ? (prop.o[this.prop || ''] || prop.v) : [];
@@ -310,9 +330,15 @@
           }
         }).map(rule => objectAssign({}, rule));//循环过滤所得的校验规则，与一个空对象合并（//TODO 这波操作看不懂啊）
       },
+      /**
+       * blur 事件回调
+       */
       onFieldBlur() {
         this.validate('blur');
       },
+      /**
+       * change 事件回调
+       */
       onFieldChange() {
         if (this.validateDisabled) {
           this.validateDisabled = false;
@@ -324,14 +350,21 @@
       updateComputedLabelWidth(width) {
         this.computedLabelWidth = width ? `${width}px` : '';
       },
+      /**
+       * 添加事件监听
+       */
       addValidateEvents() {
         const rules = this.getRules();
 
+        // 如果定义了规则或定义了必须填写
         if (rules.length || this.required !== undefined) {
           this.$on('el.form.blur', this.onFieldBlur);
           this.$on('el.form.change', this.onFieldChange);
         }
       },
+      /**
+       * 移除所有的事件监听
+       */
       removeValidateEvents() {
         this.$off();
       }
